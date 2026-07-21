@@ -17,11 +17,7 @@ export interface WizardState {
   step: WizardStep
   insuredData: InsuredData
   beneficiaries: Beneficiary[]
-  polizaNumero: string
-  montoCobertura: number
-  colaboradorNombre: string
-  empresaNombre: string
-  alreadyActivated: boolean
+  documentImagePath: string | null
 }
 
 export const INITIAL_STATE: WizardState = {
@@ -32,11 +28,17 @@ export const INITIAL_STATE: WizardState = {
     fechaNacimiento: '',
   },
   beneficiaries: [],
-  polizaNumero: 'VG-2024-084521',
-  montoCobertura: 50000,
-  colaboradorNombre: 'Camila',
-  empresaNombre: 'Constructora Andina',
-  alreadyActivated: false,
+  documentImagePath: null,
+}
+
+// Datos resueltos del link de activación (vienen de employee_policies en Supabase).
+export interface ActivacionLinkData {
+  token: string
+  status: 'pending' | 'activated'
+  colaboradorNombre: string
+  empresaNombre: string
+  montoCobertura: number
+  polizaNumero: string
 }
 
 // Mock OCR result after "scanning" document

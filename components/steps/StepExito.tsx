@@ -12,6 +12,7 @@ interface StepExitoProps {
   insuredData: InsuredData
   beneficiaries: Beneficiary[]
   polizaNumero: string
+  activatedAt: string
   montoCobertura: number
   empresaNombre: string
 }
@@ -47,6 +48,7 @@ export function StepExito({
   insuredData,
   beneficiaries,
   polizaNumero,
+  activatedAt,
   montoCobertura,
   empresaNombre,
 }: StepExitoProps) {
@@ -66,7 +68,7 @@ export function StepExito({
   const parentescoLabel = (value: string) =>
     PARENTESCO_OPTIONS.find((p) => p.value === value)?.label ?? value
 
-  const formattedDate = new Date().toLocaleDateString('es-MX', {
+  const formattedDate = new Date(activatedAt).toLocaleDateString('es-MX', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

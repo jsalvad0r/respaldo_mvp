@@ -19,6 +19,8 @@ import { Plus, Trash2, AlertCircle, Cpu, Users } from 'lucide-react'
 interface StepDatosProps {
   insuredData: InsuredData
   onNext: (data: InsuredData, beneficiaries: Beneficiary[]) => void
+  submitting: boolean
+  submitError: string | null
 }
 
 function generateId() {
@@ -133,7 +135,7 @@ function BeneficiaryCard({ beneficiary, index, onChange, onRemove, errors, canRe
   )
 }
 
-export function StepDatos({ insuredData: initialData, onNext }: StepDatosProps) {
+export function StepDatos({ insuredData: initialData, onNext, submitting, submitError }: StepDatosProps) {
   const [data, setData] = useState<InsuredData>(initialData)
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([
     { id: generateId(), nombre: '', parentesco: '', porcentaje: 100 },
@@ -306,12 +308,19 @@ export function StepDatos({ insuredData: initialData, onNext }: StepDatosProps) 
 
       {/* Submit */}
       <div className="flex flex-col gap-3 pt-2">
+        {submitError && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+            <AlertCircle className="size-4 text-destructive shrink-0" />
+            <p className="text-destructive text-xs">{submitError}</p>
+          </div>
+        )}
         <Button
           size="lg"
           className="w-full rounded-xl h-14 text-base font-semibold bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
           onClick={handleSubmit}
+          disabled={submitting}
         >
-          Confirmar y activar
+          {submitting ? 'Activando...' : 'Confirmar y activar'}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
           Al confirmar, aceptas que tus datos sean usados para emitir tu póliza

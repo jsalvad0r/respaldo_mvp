@@ -3,41 +3,61 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { MOCK_OCR_DATA, type InsuredData } from '@/lib/types'
+import { type InsuredData } from '@/lib/types'
 import { Camera, Upload, ScanLine, FileText, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type ScanState = 'idle' | 'scanning' | 'done'
+type ScanState = 'idle' | 'scanning' | 'done' | 'error'
 
 interface StepDocumentoProps {
-  onNext: (data: InsuredData) => void
+  token: string
+  onNext: (data: InsuredData, documentImagePath: string | null) => void
 }
 
-async function mockOCR(): Promise<InsuredData> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(MOCK_OCR_DATA), 2200)
-  })
+// 1x1 transparent PNG, usado como archivo de relleno en "Simular captura".
+const PLACEHOLDER_IMAGE_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+
+async function runOcr(token: string, file: Blob): Promise<{ insuredData: InsuredData; documentImagePath: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(`/api/activacion/${token}/ocr`, { method: 'POST', body: formData })
+  const body = await res.json()
+  if (!res.ok) {
+    throw new Error(body.error ?? 'No se pudo leer el documento')
+  }
+  return body
 }
 
-export function StepDocumento({ onNext }: StepDocumentoProps) {
+export function StepDocumento({ token, onNext }: StepDocumentoProps) {
   const [scanState, setScanState] = useState<ScanState>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  async function processFile(file: Blob) {
+    setScanState('scanning')
+    setErrorMessage(null)
+    try {
+      const { insuredData, documentImagePath } = await runOcr(token, file)
+      setScanState('done')
+      setTimeout(() => onNext(insuredData, documentImagePath), 800)
+    } catch (err) {
+      setScanState('error')
+      setErrorMessage(err instanceof Error ? err.message : 'Error inesperado, intenta de nuevo')
+    }
+  }
 
   async function handleFileSelected(file: File) {
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
-    setScanState('scanning')
-    const data = await mockOCR()
-    setScanState('done')
-    setTimeout(() => onNext(data), 800)
+    await processFile(file)
   }
 
   async function handleSimulate() {
-    setScanState('scanning')
-    const data = await mockOCR()
-    setScanState('done')
-    setTimeout(() => onNext(data), 800)
+    const res = await fetch(`data:image/png;base64,${PLACEHOLDER_IMAGE_BASE64}`)
+    const blob = await res.blob()
+    await processFile(blob)
   }
 
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -109,6 +129,19 @@ export function StepDocumento({ onNext }: StepDocumentoProps) {
               </div>
               <p className="text-foreground font-semibold text-sm">Documento leído correctamente</p>
               <p className="text-muted-foreground text-xs">Cargando tus datos...</p>
+            </div>
+          )}
+
+          {scanState === 'error' && (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 px-6 text-center">
+              <div className="size-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
+                <FileText className="size-8 text-destructive" strokeWidth={1.5} />
+              </div>
+              <p className="text-foreground font-semibold text-sm">No se pudo leer el documento</p>
+              <p className="text-muted-foreground text-xs">{errorMessage}</p>
+              <Button variant="outline" size="sm" onClick={() => setScanState('idle')}>
+                Reintentar
+              </Button>
             </div>
           )}
         </CardContent>
