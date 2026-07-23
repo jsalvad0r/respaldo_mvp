@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { STAGE_CONFIG, type FunnelStage } from "@/lib/panel/mock"
+import { STAGE_CONFIG, type FunnelStage } from "@/lib/panel/model"
 
 export function StatusBadge({
   stage,

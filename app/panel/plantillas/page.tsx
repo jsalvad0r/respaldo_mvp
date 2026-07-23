@@ -3,7 +3,7 @@
 import { MessageSquareText, Zap } from "lucide-react"
 
 import { CopyButton } from "@/components/panel/copy-button"
-import { PLANTILLAS } from "@/lib/panel/mock"
+import { PLANTILLAS } from "@/lib/panel/model"
 
 export default function PlantillasPage() {
   return (

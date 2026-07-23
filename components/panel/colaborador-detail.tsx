@@ -1,20 +1,21 @@
 "use client"
 
 import * as React from "react"
-import { Building2, Calendar, CircleDot, Phone } from "lucide-react"
+import { Building2, Calendar, CircleDot, MessageCircle, Phone } from "lucide-react"
 
 import { CopyButton } from "@/components/panel/copy-button"
 import { StatusBadge } from "@/components/panel/status-badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { guardarNotas, marcarRespondio } from "@/lib/panel/actions"
 import {
   FUNNEL_ORDER,
   STAGE_CONFIG,
   linkFor,
   type Colaborador,
-} from "@/lib/panel/mock"
+} from "@/lib/panel/model"
+import { cn } from "@/lib/utils"
 
 const currency = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -44,40 +45,94 @@ function DataRow({
   )
 }
 
-export function ColaboradorDetail({ colaborador }: { colaborador: Colaborador }) {
+interface ColaboradorDetailProps {
+  colaborador: Colaborador
+  onUpdated?: (colaborador: Colaborador) => void
+}
+
+export function ColaboradorDetail({
+  colaborador,
+  onUpdated,
+}: ColaboradorDetailProps) {
+  const [current, setCurrent] = React.useState(colaborador)
   const [notas, setNotas] = React.useState(colaborador.notas)
   const [saved, setSaved] = React.useState(false)
-  const link = linkFor(colaborador.token)
+  const [actionError, setActionError] = React.useState<string | null>(null)
+  const [saving, setSaving] = React.useState(false)
+  const [marking, setMarking] = React.useState(false)
 
-  // Reinicia notas al cambiar de colaborador.
   React.useEffect(() => {
+    setCurrent(colaborador)
     setNotas(colaborador.notas)
     setSaved(false)
-  }, [colaborador.id, colaborador.notas])
+    setActionError(null)
+  }, [colaborador])
 
+  const link = linkFor(current.token)
   const historialMap = new Map(
-    colaborador.historial.map((e) => [e.stage, e.timestamp])
+    current.historial.map((e) => [e.stage, e.timestamp])
   )
+
+  async function handleSaveNotas() {
+    setSaving(true)
+    setActionError(null)
+    const result = await guardarNotas(current.id, notas)
+    setSaving(false)
+    if (!result.ok) {
+      setActionError(result.error ?? "Error al guardar")
+      return
+    }
+    setSaved(true)
+    if (result.colaborador) {
+      setCurrent(result.colaborador)
+      onUpdated?.(result.colaborador)
+    }
+  }
+
+  async function handleMarcarRespondio() {
+    setMarking(true)
+    setActionError(null)
+    const result = await marcarRespondio(current.id)
+    setMarking(false)
+    if (!result.ok) {
+      setActionError(result.error ?? "Error al actualizar")
+      return
+    }
+    if (result.colaborador) {
+      setCurrent(result.colaborador)
+      onUpdated?.(result.colaborador)
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      {/* Cabecera con nombre y estado */}
       <div className="flex flex-col gap-3 border-b border-border px-6 py-5 pr-14">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold text-foreground">
-              {colaborador.nombre}
+              {current.nombre}
             </h2>
             <span className="text-sm text-muted-foreground">
-              {colaborador.tipoPlan}
+              {current.tipoPlan}
             </span>
           </div>
-          <StatusBadge stage={colaborador.stage} />
+          <StatusBadge stage={current.stage} />
         </div>
+        {current.stage === "enviado" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-fit"
+            disabled={marking}
+            onClick={handleMarcarRespondio}
+          >
+            <MessageCircle data-icon="inline-start" />
+            {marking ? "Marcando…" : "Marcar como respondió"}
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-6 px-6 py-6">
-        {/* Datos de la póliza */}
         <section className="flex flex-col gap-4">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Datos de la póliza
@@ -88,33 +143,24 @@ export function ColaboradorDetail({ colaborador }: { colaborador: Colaborador })
                 Monto de cobertura
               </span>
               <span className="text-xl font-bold text-foreground tabular-nums">
-                {currency.format(colaborador.montoCobertura)}
+                {currency.format(current.montoCobertura)}
               </span>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <DataRow
-              icon={Building2}
-              label="Empresa"
-              value={colaborador.empresa}
-            />
+            <DataRow icon={Building2} label="Empresa" value={current.empresa} />
             <DataRow
               icon={Calendar}
               label="Fecha de alta"
-              value={colaborador.fechaAltaLabel}
+              value={current.fechaAltaLabel}
             />
-            <DataRow icon={Phone} label="WhatsApp" value={colaborador.telefono} />
-            <DataRow
-              icon={CircleDot}
-              label="Plan"
-              value={colaborador.tipoPlan}
-            />
+            <DataRow icon={Phone} label="WhatsApp" value={current.telefono} />
+            <DataRow icon={CircleDot} label="Plan" value={current.tipoPlan} />
           </div>
         </section>
 
         <Separator />
 
-        {/* Link único */}
         <section className="flex flex-col gap-2.5">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Link único de activación
@@ -134,7 +180,6 @@ export function ColaboradorDetail({ colaborador }: { colaborador: Colaborador })
 
         <Separator />
 
-        {/* Historial del funnel */}
         <section className="flex flex-col gap-4">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Historial del funnel
@@ -186,7 +231,6 @@ export function ColaboradorDetail({ colaborador }: { colaborador: Colaborador })
 
         <Separator />
 
-        {/* Notas del operador */}
         <section className="flex flex-col gap-2.5">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             Notas del operador
@@ -200,14 +244,17 @@ export function ColaboradorDetail({ colaborador }: { colaborador: Colaborador })
             placeholder="Anota detalles de la conversación, dudas del colaborador, seguimientos pendientes…"
             className="min-h-28 resize-none"
           />
+          {actionError && (
+            <p className="text-xs text-destructive">{actionError}</p>
+          )}
           <div className="flex items-center justify-end gap-2">
             {saved && (
               <span className="text-xs text-[var(--brand-success)]">
                 Nota guardada
               </span>
             )}
-            <Button size="sm" onClick={() => setSaved(true)}>
-              Guardar nota
+            <Button size="sm" disabled={saving} onClick={handleSaveNotas}>
+              {saving ? "Guardando…" : "Guardar nota"}
             </Button>
           </div>
         </section>

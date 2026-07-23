@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { stampEscaneoAt } from '@/lib/panel/server'
 import { ocrProvider } from '@/lib/ocr/provider'
 
 export async function POST(
@@ -39,6 +40,8 @@ export async function POST(
   if (uploadError) {
     return NextResponse.json({ error: 'No se pudo subir el documento' }, { status: 500 })
   }
+
+  await stampEscaneoAt(policy.id)
 
   const insuredData = await ocrProvider.extract(buffer)
 

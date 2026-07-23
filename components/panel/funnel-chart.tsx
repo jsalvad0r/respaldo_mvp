@@ -10,10 +10,13 @@ import {
   YAxis,
 } from "recharts"
 
-import { STAGE_CONFIG, funnelCounts } from "@/lib/panel/mock"
+import { STAGE_CONFIG, type FunnelStage } from "@/lib/panel/model"
 
-export function FunnelChart() {
-  const counts = funnelCounts()
+interface FunnelChartProps {
+  counts: { stage: FunnelStage; count: number }[]
+}
+
+export function FunnelChart({ counts }: FunnelChartProps) {
   const total = counts[0]?.count ?? 0
 
   const data = counts.map(({ stage, count }) => ({
