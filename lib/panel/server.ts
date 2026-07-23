@@ -77,6 +77,7 @@ export function mapPolicyToColaborador(row: EmployeePolicyRow): Colaborador {
     montoCobertura: Number(row.monto_cobertura),
     tipoPlan: row.tipo_plan ?? 'Vida Básico',
     telefono: row.telefono ?? '—',
+    email: row.email ?? '',
     notas: row.notas ?? '',
     historial: buildHistorial(row),
     enviadoAt: row.enviado_at ?? row.created_at,

@@ -82,6 +82,7 @@ export interface Colaborador {
   montoCobertura: number
   tipoPlan: string
   telefono: string
+  email: string
   notas: string
   historial: FunnelEvent[]
   enviadoAt: string | null

@@ -65,11 +65,13 @@ export function ColaboradoresClient({
   const [creating, setCreating] = React.useState(false)
   const [createError, setCreateError] = React.useState<string | null>(null)
   const [createdLink, setCreatedLink] = React.useState<string | null>(null)
+  const [createdEmailError, setCreatedEmailError] = React.useState<string | null>(null)
 
   const [form, setForm] = React.useState({
     nombre: "",
     empresa: "",
     telefono: "",
+    email: "",
     tipoPlan: PLAN_OPTIONS[1].nombre,
     montoCobertura: PLAN_OPTIONS[1].monto,
     fechaAlta: new Date().toISOString().slice(0, 10),
@@ -95,12 +97,14 @@ export function ColaboradoresClient({
       nombre: "",
       empresa: "",
       telefono: "",
+      email: "",
       tipoPlan: PLAN_OPTIONS[1].nombre,
       montoCobertura: PLAN_OPTIONS[1].monto,
       fechaAlta: new Date().toISOString().slice(0, 10),
     })
     setCreateError(null)
     setCreatedLink(null)
+    setCreatedEmailError(null)
   }
 
   function handlePlanChange(planNombre: string) {
@@ -119,11 +123,13 @@ export function ColaboradoresClient({
     setCreating(true)
     setCreateError(null)
     setCreatedLink(null)
+    setCreatedEmailError(null)
 
     const result = await crearColaborador({
       nombre: form.nombre,
       empresa: form.empresa,
       telefono: form.telefono || undefined,
+      email: form.email || undefined,
       tipoPlan: form.tipoPlan,
       montoCobertura: form.montoCobertura,
       fechaAlta: form.fechaAlta,
@@ -137,10 +143,12 @@ export function ColaboradoresClient({
     }
 
     setCreatedLink(result.link ?? null)
+    setCreatedEmailError(result.emailError ?? null)
     setForm({
       nombre: "",
       empresa: "",
       telefono: "",
+      email: "",
       tipoPlan: PLAN_OPTIONS[1].nombre,
       montoCobertura: PLAN_OPTIONS[1].monto,
       fechaAlta: new Date().toISOString().slice(0, 10),
@@ -358,6 +366,21 @@ export function ColaboradoresClient({
             </div>
 
             <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Correo (opcional)</label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, email: e.target.value }))
+                }
+                placeholder="colaborador@empresa.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Si lo llenas, le mandamos el link de activación por correo automáticamente.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Plan</label>
               <Select value={form.tipoPlan} onValueChange={handlePlanChange}>
                 <SelectTrigger className="w-full">
@@ -406,6 +429,15 @@ export function ColaboradoresClient({
                     stopPropagation={false}
                   />
                 </div>
+                {createdEmailError ? (
+                  <p className="text-xs text-destructive">
+                    No se pudo enviar el correo: {createdEmailError}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Correo enviado automáticamente si capturaste un email.
+                  </p>
+                )}
               </div>
             )}
           </form>

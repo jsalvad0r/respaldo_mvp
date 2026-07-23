@@ -9,6 +9,7 @@ export interface EmployeePolicyRow {
   activated_at: string | null
   created_at: string
   telefono?: string | null
+  email?: string | null
   tipo_plan?: string | null
   fecha_alta?: string
   notas?: string

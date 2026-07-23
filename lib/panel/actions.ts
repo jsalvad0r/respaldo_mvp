@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { linkFor, type Colaborador } from '@/lib/panel/model'
 import { getColaborador } from '@/lib/panel/server'
+import { sendActivationEmail } from '@/lib/email/send'
 
 export interface ActionResult {
   ok: boolean
@@ -15,6 +16,7 @@ export interface CrearColaboradorInput {
   nombre: string
   empresa: string
   telefono?: string
+  email?: string
   tipoPlan: string
   montoCobertura: number
   fechaAlta?: string
@@ -24,6 +26,7 @@ export interface CrearColaboradorResult extends ActionResult {
   id?: string
   token?: string
   link?: string
+  emailError?: string
 }
 
 async function findOrCreateCompany(nombre: string): Promise<string | null> {
@@ -76,9 +79,9 @@ export async function crearColaborador(
   const supabase = createServerSupabaseClient()
   const token = crypto.randomUUID()
   const polizaNumero = `VG-${Date.now().toString(36).toUpperCase()}`
-  const now = new Date().toISOString()
   const fechaAlta =
     input.fechaAlta ?? new Date().toISOString().slice(0, 10)
+  const email = input.email?.trim() || null
 
   const { data, error } = await supabase
     .from('employee_policies')
@@ -90,8 +93,8 @@ export async function crearColaborador(
       poliza_numero: polizaNumero,
       tipo_plan: input.tipoPlan,
       telefono: input.telefono?.trim() || null,
+      email,
       fecha_alta: fechaAlta,
-      enviado_at: now,
       status: 'pending',
     })
     .select('id, token')
@@ -101,13 +104,35 @@ export async function crearColaborador(
     return { ok: false, error: 'No se pudo crear el colaborador' }
   }
 
+  const link = linkFor(data.token)
+  let emailError: string | undefined
+
+  if (email) {
+    try {
+      await sendActivationEmail({
+        to: email,
+        nombre,
+        empresa,
+        montoCobertura: input.montoCobertura,
+        link,
+      })
+      await supabase
+        .from('employee_policies')
+        .update({ enviado_at: new Date().toISOString() })
+        .eq('id', data.id)
+    } catch (err) {
+      emailError = err instanceof Error ? err.message : 'No se pudo enviar el correo'
+    }
+  }
+
   revalidatePanel()
 
   return {
     ok: true,
     id: data.id,
     token: data.token,
-    link: linkFor(data.token),
+    link,
+    emailError,
   }
 }
 
