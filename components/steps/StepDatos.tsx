@@ -10,11 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { type InsuredData, type Beneficiary, PARENTESCO_OPTIONS } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, AlertCircle, Cpu, Users } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, Users } from 'lucide-react'
 
 interface StepDatosProps {
   insuredData: InsuredData
@@ -31,21 +30,12 @@ interface FieldProps {
   label: string
   error?: string
   children: React.ReactNode
-  autoDetected?: boolean
 }
 
-function Field({ label, error, children, autoDetected }: FieldProps) {
+function Field({ label, error, children }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-foreground">{label}</label>
-        {autoDetected && (
-          <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 gap-1">
-            <Cpu className="size-2.5" />
-            Detectado
-          </Badge>
-        )}
-      </div>
+      <label className="text-sm font-medium text-foreground">{label}</label>
       {children}
       {error && (
         <p className="text-destructive text-xs flex items-center gap-1">
@@ -213,12 +203,12 @@ export function StepDatos({ insuredData: initialData, onNext, submitting, submit
         <div className="flex flex-col gap-1">
           <h2 className="text-foreground text-xl font-bold">Confirma tus datos</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Leímos tu documento automáticamente. Verifica que todo esté correcto.
+            Completa tus datos para activar tu seguro.
           </p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-4">
-          <Field label="Nombre completo" error={errors.nombreCompleto} autoDetected>
+          <Field label="Nombre completo" error={errors.nombreCompleto}>
             <Input
               value={data.nombreCompleto}
               onChange={(e) => updateData('nombreCompleto', e.target.value)}
@@ -226,7 +216,7 @@ export function StepDatos({ insuredData: initialData, onNext, submitting, submit
               className="rounded-lg"
             />
           </Field>
-          <Field label="Número de documento" error={errors.numeroDocumento} autoDetected>
+          <Field label="Número de documento" error={errors.numeroDocumento}>
             <Input
               value={data.numeroDocumento}
               onChange={(e) => updateData('numeroDocumento', e.target.value)}
@@ -234,7 +224,7 @@ export function StepDatos({ insuredData: initialData, onNext, submitting, submit
               className="rounded-lg"
             />
           </Field>
-          <Field label="Fecha de nacimiento" error={errors.fechaNacimiento} autoDetected>
+          <Field label="Fecha de nacimiento" error={errors.fechaNacimiento}>
             <Input
               type="date"
               value={data.fechaNacimiento}

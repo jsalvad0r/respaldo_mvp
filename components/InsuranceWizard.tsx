@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { WizardProgressBar } from '@/components/WizardProgressBar'
 import { StepLanding } from '@/components/steps/StepLanding'
-import { StepDocumento } from '@/components/steps/StepDocumento'
 import { StepDatos } from '@/components/steps/StepDatos'
 import { StepExito } from '@/components/steps/StepExito'
 import { INITIAL_STATE, type WizardState, type InsuredData, type Beneficiary } from '@/lib/types'
@@ -43,11 +42,6 @@ export function InsuranceWizard({
     goToStep(2)
   }
 
-  function handleDocumentoNext(insuredData: InsuredData, documentImagePath: string | null) {
-    setState((prev) => ({ ...prev, insuredData, documentImagePath, step: 3 }))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   async function handleDatosNext(insuredData: InsuredData, beneficiaries: Beneficiary[]) {
     setSubmitting(true)
     setSubmitError(null)
@@ -66,7 +60,7 @@ export function InsuranceWizard({
         throw new Error(body.error ?? 'No se pudo activar tu seguro')
       }
       setActivation(body as ActivationResult)
-      setState((prev) => ({ ...prev, insuredData, beneficiaries, step: 4 }))
+      setState((prev) => ({ ...prev, insuredData, beneficiaries, step: 3 }))
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Error inesperado, intenta de nuevo')
@@ -77,7 +71,7 @@ export function InsuranceWizard({
 
   return (
     <div className="min-h-dvh flex flex-col bg-background">
-      {state.step !== 1 && state.step !== 4 && (
+      {state.step !== 1 && state.step !== 3 && (
         <WizardProgressBar currentStep={state.step} />
       )}
 
@@ -97,9 +91,6 @@ export function InsuranceWizard({
           />
         )}
         {state.step === 2 && (
-          <StepDocumento token={token} onNext={handleDocumentoNext} />
-        )}
-        {state.step === 3 && (
           <StepDatos
             insuredData={state.insuredData}
             onNext={handleDatosNext}
@@ -107,7 +98,7 @@ export function InsuranceWizard({
             submitError={submitError}
           />
         )}
-        {state.step === 4 && activation && (
+        {state.step === 3 && activation && (
           <StepExito
             insuredData={state.insuredData}
             beneficiaries={state.beneficiaries}

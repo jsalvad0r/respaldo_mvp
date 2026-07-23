@@ -70,7 +70,6 @@ export function ColaboradoresClient({
   const [form, setForm] = React.useState({
     nombre: "",
     empresa: "",
-    telefono: "",
     email: "",
     tipoPlan: PLAN_OPTIONS[1].nombre,
     montoCobertura: PLAN_OPTIONS[1].monto,
@@ -96,7 +95,6 @@ export function ColaboradoresClient({
     setForm({
       nombre: "",
       empresa: "",
-      telefono: "",
       email: "",
       tipoPlan: PLAN_OPTIONS[1].nombre,
       montoCobertura: PLAN_OPTIONS[1].monto,
@@ -128,8 +126,7 @@ export function ColaboradoresClient({
     const result = await crearColaborador({
       nombre: form.nombre,
       empresa: form.empresa,
-      telefono: form.telefono || undefined,
-      email: form.email || undefined,
+      email: form.email,
       tipoPlan: form.tipoPlan,
       montoCobertura: form.montoCobertura,
       fechaAlta: form.fechaAlta,
@@ -147,7 +144,6 @@ export function ColaboradoresClient({
     setForm({
       nombre: "",
       empresa: "",
-      telefono: "",
       email: "",
       tipoPlan: PLAN_OPTIONS[1].nombre,
       montoCobertura: PLAN_OPTIONS[1].monto,
@@ -355,19 +351,9 @@ export function ColaboradoresClient({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">WhatsApp (opcional)</label>
+              <label className="text-sm font-medium">Correo electrónico</label>
               <Input
-                value={form.telefono}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, telefono: e.target.value }))
-                }
-                placeholder="+52 55 1234 5678"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Correo (opcional)</label>
-              <Input
+                required
                 type="email"
                 value={form.email}
                 onChange={(e) =>
@@ -376,7 +362,7 @@ export function ColaboradoresClient({
                 placeholder="colaborador@empresa.com"
               />
               <p className="text-xs text-muted-foreground">
-                Si lo llenas, le mandamos el link de activación por correo automáticamente.
+                Le mandamos el link de activación a este correo automáticamente.
               </p>
             </div>
 

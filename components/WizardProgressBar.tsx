@@ -5,9 +5,8 @@ import type { WizardStep } from '@/lib/types'
 
 const STEPS = [
   { num: 1, label: 'Bienvenida' },
-  { num: 2, label: 'Documento' },
-  { num: 3, label: 'Datos' },
-  { num: 4, label: 'Listo' },
+  { num: 2, label: 'Datos' },
+  { num: 3, label: 'Listo' },
 ]
 
 interface WizardProgressBarProps {
@@ -28,7 +27,7 @@ export function WizardProgressBar({ currentStep }: WizardProgressBarProps) {
           <span className="text-primary-foreground font-semibold text-sm tracking-wide">VidaSegura</span>
         </div>
         <span className="text-primary-foreground/60 text-xs">
-          Paso {currentStep} de 4
+          Paso {currentStep} de {STEPS.length}
         </span>
       </div>
 
