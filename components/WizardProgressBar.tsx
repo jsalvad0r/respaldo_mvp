@@ -1,5 +1,6 @@
 'use client'
 
+import { RespaldoWordmark } from '@/components/brand/logo'
 import { cn } from '@/lib/utils'
 import type { WizardStep } from '@/lib/types'
 
@@ -18,14 +19,7 @@ export function WizardProgressBar({ currentStep }: WizardProgressBarProps) {
     <header className="sticky top-0 z-10 bg-primary px-4 pt-4 pb-5 shadow-sm">
       {/* Logo / brand strip */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="size-7 rounded-full bg-accent flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 1L2 4v4c0 3.31 2.57 6.4 6 7 3.43-.6 6-3.69 6-7V4L8 1z" fill="currentColor" className="text-primary" />
-            </svg>
-          </div>
-          <span className="text-primary-foreground font-semibold text-sm tracking-wide">VidaSegura</span>
-        </div>
+        <RespaldoWordmark onDark compact />
         <span className="text-primary-foreground/60 text-xs">
           Paso {currentStep} de {STEPS.length}
         </span>

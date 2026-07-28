@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, MessageSquareText, Shield, Users } from "lucide-react"
+import { BarChart3, MessageSquareText, Users } from "lucide-react"
 
+import { RespaldoWordmark } from "@/components/brand/logo"
 import { cn } from "@/lib/utils"
 
 const NAV = [
@@ -17,18 +18,8 @@ export function PanelSidebar() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r border-sidebar-border bg-sidebar">
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5">
-        <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Shield className="size-4" />
-        </div>
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-semibold text-sidebar-foreground">
-            VidaSegura
-          </span>
-          <span className="text-[11px] text-muted-foreground">
-            Panel del piloto
-          </span>
-        </div>
+      <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+        <RespaldoWordmark compact />
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-3">

@@ -201,7 +201,7 @@ export function StepDocumento({ token, onNext }: StepDocumentoProps) {
       )}
 
       {/* Info note */}
-      <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--brand-teal-light)] border border-accent/20">
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--brand-blue-light)] border border-accent/20">
         <CheckCircle2 className="size-4 text-accent shrink-0 mt-0.5" strokeWidth={2} />
         <p className="text-foreground text-xs leading-relaxed">
           Tus datos se usan únicamente para activar tu póliza y nunca se comparten con terceros.

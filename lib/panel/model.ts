@@ -37,7 +37,7 @@ export const STAGE_CONFIG: Record<FunnelStage, StageConfig> = {
     label: "Respondió",
     short: "Respondió",
     badgeClass:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+      "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
     chartColor: "var(--chart-4)",
   },
   clic: {
@@ -45,7 +45,7 @@ export const STAGE_CONFIG: Record<FunnelStage, StageConfig> = {
     label: "Clic en link",
     short: "Clic",
     badgeClass:
-      "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+      "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
     chartColor: "var(--chart-3)",
   },
   escaneo: {
@@ -53,7 +53,7 @@ export const STAGE_CONFIG: Record<FunnelStage, StageConfig> = {
     label: "Escaneó documento",
     short: "Escaneó",
     badgeClass:
-      "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
+      "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
     chartColor: "var(--chart-2)",
   },
   activado: {
@@ -177,7 +177,7 @@ export const PLANTILLAS: PlantillaRapida[] = [
     titulo: "Mensaje inicial",
     descripcion: "Primer contacto de activación",
     texto:
-      "¡Hola! 👋 Te escribimos de VidaSegura. Tu empresa activó un seguro de vida para ti, sin costo. Puedes activarlo en menos de 1 minuto desde tu celular. ¿Quieres saber cuánto te cubre?",
+      "¡Hola! 👋 Te escribimos de Respaldo. Tu empresa activó un seguro de vida para ti, sin costo. Puedes activarlo en menos de 1 minuto desde tu celular. ¿Quieres saber cuánto te cubre?",
   },
   {
     id: "cuanto-cubre",

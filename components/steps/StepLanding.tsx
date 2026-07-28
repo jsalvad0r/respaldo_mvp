@@ -1,8 +1,11 @@
 'use client'
 
+import Image from 'next/image'
+
+import { RespaldoWordmark } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Clock, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, Clock, CheckCircle2 } from 'lucide-react'
 
 interface StepLandingProps {
   colaboradorNombre: string
@@ -27,17 +30,21 @@ export function StepLanding({ colaboradorNombre, empresaNombre, montoCobertura, 
   return (
     <div className="flex flex-col min-h-[calc(100dvh-120px)]">
       {/* Hero section */}
-      <div className="bg-primary px-6 pt-2 pb-10 flex flex-col items-center text-center gap-4">
-        {/* Shield icon */}
-        <div className="relative">
-          <div className="size-24 rounded-full bg-accent/20 flex items-center justify-center mt-4">
-            <div className="size-16 rounded-full bg-accent/30 flex items-center justify-center">
-              <Shield className="size-8 text-accent" strokeWidth={1.5} />
-            </div>
-          </div>
-          <div className="absolute -bottom-1 -right-1 size-8 rounded-full bg-accent flex items-center justify-center shadow-md">
-            <CheckCircle2 className="size-4 text-primary" strokeWidth={2.5} />
-          </div>
+      <div className="bg-primary px-6 pt-5 pb-10 flex flex-col items-center text-center gap-5">
+        <div className="w-full flex justify-center">
+          <RespaldoWordmark onDark compact />
+        </div>
+
+        {/* Family imagery */}
+        <div className="w-full max-w-xs overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg">
+          <Image
+            src="/family-hero.png"
+            alt="Una familia protegida por su seguro de vida"
+            width={1024}
+            height={768}
+            priority
+            className="h-auto w-full object-cover"
+          />
         </div>
 
         <div className="flex flex-col gap-2">
@@ -73,7 +80,7 @@ export function StepLanding({ colaboradorNombre, empresaNombre, montoCobertura, 
         <div className="flex flex-col gap-3">
           {BENEFITS.map((benefit, i) => (
             <div key={i} className="flex items-start gap-3">
-              <div className="size-5 rounded-full bg-[var(--brand-teal-light)] flex items-center justify-center shrink-0 mt-0.5">
+              <div className="size-5 rounded-full bg-[var(--brand-blue-light)] flex items-center justify-center shrink-0 mt-0.5">
                 <CheckCircle2 className="size-3 text-accent" strokeWidth={2.5} />
               </div>
               <p className="text-foreground text-sm leading-relaxed">{benefit}</p>
@@ -91,8 +98,8 @@ export function StepLanding({ colaboradorNombre, empresaNombre, montoCobertura, 
             className="w-full rounded-xl h-14 text-base font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground"
             onClick={onNext}
           >
-            <Shield className="size-5 mr-2" data-icon="inline-start" />
             Activar mi seguro
+            <ArrowRight className="size-5 ml-2" data-icon="inline-end" />
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             Tus datos están protegidos y nunca se comparten con terceros

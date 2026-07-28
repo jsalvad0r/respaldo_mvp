@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import type { InsuredData, Beneficiary } from '@/lib/types'
+import { MAX_BENEFICIARIES, type InsuredData, type Beneficiary } from '@/lib/types'
 
 interface ActivarBody {
   insuredData: InsuredData
@@ -19,8 +19,14 @@ export async function POST(
   if (!insuredData?.nombreCompleto || !insuredData?.numeroDocumento || !insuredData?.fechaNacimiento) {
     return NextResponse.json({ error: 'Faltan datos del asegurado' }, { status: 400 })
   }
+  if (!beneficiaries.length || beneficiaries.length > MAX_BENEFICIARIES) {
+    return NextResponse.json(
+      { error: `Puedes registrar hasta ${MAX_BENEFICIARIES} beneficiarios` },
+      { status: 400 }
+    )
+  }
   const totalPorcentaje = beneficiaries.reduce((sum, b) => sum + (b.porcentaje || 0), 0)
-  if (!beneficiaries.length || totalPorcentaje !== 100) {
+  if (totalPorcentaje !== 100) {
     return NextResponse.json({ error: 'Los porcentajes de beneficiarios deben sumar 100%' }, { status: 400 })
   }
 

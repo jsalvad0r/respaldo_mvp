@@ -20,7 +20,7 @@ export default function PlantillasPage() {
       </div>
 
       {/* Aviso de variables */}
-      <div className="flex items-start gap-2.5 rounded-xl border border-accent/20 bg-[var(--brand-teal-light)] p-3.5">
+      <div className="flex items-start gap-2.5 rounded-xl border border-accent/20 bg-[var(--brand-blue-light)] p-3.5">
         <Zap className="mt-0.5 size-4 shrink-0 text-accent" />
         <p className="text-sm text-foreground">
           Reemplaza{" "}

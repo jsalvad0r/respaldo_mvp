@@ -1,5 +1,7 @@
 export type WizardStep = 1 | 2 | 3
 
+export const MAX_BENEFICIARIES = 3
+
 export interface Beneficiary {
   id: string
   nombre: string

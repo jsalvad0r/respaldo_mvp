@@ -153,7 +153,7 @@ export function StepExito({
                     <span className="text-foreground text-sm font-medium">{b.nombre}</span>
                     <span className="text-muted-foreground text-xs">{parentescoLabel(b.parentesco)}</span>
                   </div>
-                  <Badge className="bg-[var(--brand-teal-light)] text-accent border-0 font-semibold">
+                  <Badge className="bg-[var(--brand-blue-light)] text-accent border-0 font-semibold">
                     {b.porcentaje}%
                   </Badge>
                 </div>
@@ -163,7 +163,7 @@ export function StepExito({
         </div>
 
         {/* WhatsApp note */}
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--brand-teal-light)] border border-accent/20">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--brand-blue-light)] border border-accent/20">
           <MessageCircle className="size-4 text-accent shrink-0" strokeWidth={2} />
           <p className="text-foreground text-xs leading-relaxed">
             Recibirás la confirmación también por <span className="font-semibold">WhatsApp</span> en los próximos minutos.

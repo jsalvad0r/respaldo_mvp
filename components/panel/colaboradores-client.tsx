@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { Plus, Search, Users } from "lucide-react"
 
 import { ColaboradorDetail } from "@/components/panel/colaborador-detail"
@@ -273,9 +274,23 @@ export function ColaboradoresClient({
                   colSpan={6}
                   className="py-12 text-center text-sm text-muted-foreground whitespace-normal"
                 >
-                  {colaboradores.length === 0
-                    ? "Aún no hay colaboradores. Crea el primero con el botón de arriba."
-                    : "No hay colaboradores que coincidan con los filtros."}
+                  {colaboradores.length === 0 ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <Image
+                        src="/family-hero.png"
+                        alt="Familias protegidas por Respaldo"
+                        width={320}
+                        height={240}
+                        className="w-56 max-w-full rounded-2xl border border-border object-cover"
+                      />
+                      <p className="max-w-sm">
+                        Aún no hay colaboradores. Crea el primero con el botón de
+                        arriba y empieza a proteger a cada familia.
+                      </p>
+                    </div>
+                  ) : (
+                    "No hay colaboradores que coincidan con los filtros."
+                  )}
                 </TableCell>
               </TableRow>
             )}

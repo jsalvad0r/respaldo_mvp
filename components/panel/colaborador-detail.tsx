@@ -197,7 +197,7 @@ export function ColaboradorDetail({
                       className={cn(
                         "mt-0.5 flex size-3.5 items-center justify-center rounded-full border-2",
                         done
-                          ? "border-[var(--brand-teal)] bg-[var(--brand-teal)]"
+                          ? "border-[var(--brand-blue)] bg-[var(--brand-blue)]"
                           : "border-border bg-background"
                       )}
                     />
@@ -205,7 +205,7 @@ export function ColaboradorDetail({
                       <span
                         className={cn(
                           "w-px flex-1",
-                          done ? "bg-[var(--brand-teal)]/40" : "bg-border"
+                          done ? "bg-[var(--brand-blue)]/40" : "bg-border"
                         )}
                       />
                     )}

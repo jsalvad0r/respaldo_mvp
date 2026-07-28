@@ -1,6 +1,8 @@
 'use client'
 
-import { Shield, CheckCircle2, MessageCircle } from 'lucide-react'
+import { CheckCircle2, MessageCircle } from 'lucide-react'
+
+import { RespaldoWordmark } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 
 interface AlreadyActivatedProps {
@@ -11,15 +13,12 @@ interface AlreadyActivatedProps {
 export function AlreadyActivated({ colaboradorNombre, polizaNumero }: AlreadyActivatedProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-dvh px-6 py-12 gap-8 text-center bg-background">
-      {/* Icon */}
-      <div className="relative">
-        <div className="size-28 rounded-full bg-muted flex items-center justify-center">
-          <div className="size-18 rounded-full bg-muted flex items-center justify-center">
-            <Shield className="size-12 text-muted-foreground" strokeWidth={1.5} />
-          </div>
-        </div>
-        <div className="absolute -bottom-1 -right-1 size-9 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center shadow-sm border-2 border-background">
-          <CheckCircle2 className="size-5 text-[var(--brand-success)]" strokeWidth={2.5} />
+      <RespaldoWordmark />
+
+      {/* Success icon */}
+      <div className="size-24 rounded-full bg-[var(--brand-blue-light)] flex items-center justify-center">
+        <div className="size-16 rounded-full bg-[var(--brand-success)]/10 flex items-center justify-center">
+          <CheckCircle2 className="size-9 text-[var(--brand-success)]" strokeWidth={2} />
         </div>
       </div>
 
@@ -39,7 +38,7 @@ export function AlreadyActivated({ colaboradorNombre, polizaNumero }: AlreadyAct
 
       {/* Info */}
       <div className="w-full max-w-xs flex flex-col gap-3">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--brand-teal-light)] border border-accent/20">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--brand-blue-light)] border border-accent/20">
           <MessageCircle className="size-4 text-accent shrink-0" strokeWidth={2} />
           <p className="text-foreground text-xs leading-relaxed text-left">
             Si tienes dudas sobre tu cobertura, comunícate con Recursos Humanos o responde el mensaje de WhatsApp.

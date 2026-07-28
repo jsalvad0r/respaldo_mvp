@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { type InsuredData, type Beneficiary, PARENTESCO_OPTIONS } from '@/lib/types'
+import { type InsuredData, type Beneficiary, MAX_BENEFICIARIES, PARENTESCO_OPTIONS } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Plus, Trash2, AlertCircle, Users } from 'lucide-react'
 
@@ -142,10 +142,10 @@ export function StepDatos({ insuredData: initialData, onNext, submitting, submit
   }
 
   function addBeneficiary() {
-    setBeneficiaries((prev) => [
-      ...prev,
-      { id: generateId(), nombre: '', parentesco: '', porcentaje: 0 },
-    ])
+    setBeneficiaries((prev) => {
+      if (prev.length >= MAX_BENEFICIARIES) return prev
+      return [...prev, { id: generateId(), nombre: '', parentesco: '', porcentaje: 0 }]
+    })
   }
 
   function removeBeneficiary(id: string) {
@@ -283,7 +283,7 @@ export function StepDatos({ insuredData: initialData, onNext, submitting, submit
           ))}
         </div>
 
-        {beneficiaries.length < 5 && (
+        {beneficiaries.length < MAX_BENEFICIARIES && (
           <Button
             variant="outline"
             size="sm"
