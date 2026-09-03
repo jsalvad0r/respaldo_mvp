@@ -2,22 +2,23 @@
 
 import { RespaldoWordmark } from '@/components/brand/logo'
 import { cn } from '@/lib/utils'
-import type { WizardStep } from '@/lib/types'
+import type { ProgressStep } from '@/lib/types'
 
-const STEPS = [
-  { num: 1, label: 'Bienvenida' },
-  { num: 2, label: 'Datos' },
-  { num: 3, label: 'Listo' },
+const STEPS: { num: ProgressStep; label: string }[] = [
+  { num: 1, label: 'Inicio' },
+  { num: 2, label: 'Identidad' },
+  { num: 3, label: 'Póliza' },
+  { num: 4, label: 'Beneficiarios' },
+  { num: 5, label: 'Listo' },
 ]
 
 interface WizardProgressBarProps {
-  currentStep: WizardStep
+  currentStep: ProgressStep
 }
 
 export function WizardProgressBar({ currentStep }: WizardProgressBarProps) {
   return (
     <header className="sticky top-0 z-10 bg-primary px-4 pt-4 pb-5 shadow-sm">
-      {/* Logo / brand strip */}
       <div className="flex items-center justify-between mb-4">
         <RespaldoWordmark onDark compact />
         <span className="text-primary-foreground/60 text-xs">
@@ -25,7 +26,6 @@ export function WizardProgressBar({ currentStep }: WizardProgressBarProps) {
         </span>
       </div>
 
-      {/* Step indicators */}
       <div className="flex items-center gap-0">
         {STEPS.map((step, index) => {
           const isCompleted = currentStep > step.num
@@ -46,7 +46,13 @@ export function WizardProgressBar({ currentStep }: WizardProgressBarProps) {
                 >
                   {isCompleted ? (
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-label="Completado">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M2 6l3 3 5-5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   ) : (
                     step.num
