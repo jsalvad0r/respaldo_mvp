@@ -6,8 +6,10 @@ import { ShieldCheck, FileText, ScanFace, CheckCircle2, XCircle } from 'lucide-r
 import { cn } from '@/lib/utils'
 
 interface StepConsentimientoBiometricoProps {
-  onAccept: () => void
-  onReject: () => void
+  onAccept: () => void | Promise<void>
+  onReject: () => void | Promise<void>
+  loading?: boolean
+  consentAlreadyGiven?: boolean
 }
 
 const CAPTURE_ITEMS = [
@@ -26,8 +28,10 @@ const CAPTURE_ITEMS = [
 export function StepConsentimientoBiometrico({
   onAccept,
   onReject,
+  loading = false,
+  consentAlreadyGiven = false,
 }: StepConsentimientoBiometricoProps) {
-  const [accepted, setAccepted] = useState(false)
+  const [accepted, setAccepted] = useState(consentAlreadyGiven)
   const [rejected, setRejected] = useState(false)
 
   if (rejected) {
@@ -117,11 +121,11 @@ export function StepConsentimientoBiometrico({
       <div className="flex flex-col gap-3 mt-auto">
         <Button
           size="lg"
-          disabled={!accepted}
+          disabled={!accepted || loading}
           className="w-full rounded-xl h-14 text-base font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground disabled:opacity-50"
-          onClick={onAccept}
+          onClick={() => void onAccept()}
         >
-          Continuar
+          {loading ? 'Iniciando verificación...' : 'Continuar'}
         </Button>
         <Button
           variant="ghost"

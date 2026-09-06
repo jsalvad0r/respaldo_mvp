@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { ActivacionError, errorResponse } from '@/lib/activacion/errors'
+import { errorResponse } from '@/lib/activacion/errors'
 import {
   daysUntilExpiration,
   resolvePolicyByToken,
@@ -25,6 +25,13 @@ export async function GET(
       .eq('consent_type', 'biometric_data_processing')
       .maybeSingle()
 
+    const { data: policyConsent } = await supabase
+      .from('consents')
+      .select('granted')
+      .eq('employee_policy_id', policy.id)
+      .eq('consent_type', 'policy_activation')
+      .maybeSingle()
+
     const idvService = new VerificationService()
     const idvStatus = await idvService.getStatus(policy.id)
 
@@ -34,6 +41,9 @@ export async function GET(
       empresaNombre: policy.companies?.nombre ?? '',
       montoCobertura: policy.monto_cobertura,
       polizaNumero: policy.poliza_numero,
+      padronComplete: Boolean(
+        policy.colaborador_documento && policy.colaborador_fecha_nacimiento
+      ),
       idv: {
         attemptsUsed: idvStatus.attemptsUsed,
         maxAttempts: MAX_VERIFICATION_ATTEMPTS,
@@ -41,8 +51,11 @@ export async function GET(
         currentAttemptId: idvStatus.currentAttempt?.attemptId ?? null,
         currentStage: idvStatus.currentAttempt?.stage ?? null,
         biometricConsentGiven: biometricConsent?.granted ?? false,
+        policyConsentGiven: policyConsent?.granted ?? false,
         canProceedToActivation: idvStatus.canProceedToActivation,
+        lastFailureReason: idvStatus.lastFailedAttempt?.failureReason ?? null,
       },
+      verifiedData: idvStatus.verifiedData ?? null,
       expiresAt: policy.expires_at ?? null,
       daysUntilExpiration: daysUntilExpiration(policy.expires_at),
     })

@@ -6,9 +6,10 @@ import { Building2, Calendar, CircleDot, MessageCircle, Phone } from "lucide-rea
 import { CopyButton } from "@/components/panel/copy-button"
 import { StatusBadge } from "@/components/panel/status-badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { guardarNotas, marcarRespondio } from "@/lib/panel/actions"
+import { guardarNotas, guardarPadron, marcarRespondio } from "@/lib/panel/actions"
 import {
   FUNNEL_ORDER,
   STAGE_CONFIG,
@@ -60,11 +61,18 @@ export function ColaboradorDetail({
   const [actionError, setActionError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
   const [marking, setMarking] = React.useState(false)
+  const [numeroDocumento, setNumeroDocumento] = React.useState(colaborador.numeroDocumento)
+  const [fechaNacimiento, setFechaNacimiento] = React.useState(colaborador.fechaNacimiento)
+  const [padronSaved, setPadronSaved] = React.useState(false)
+  const [savingPadron, setSavingPadron] = React.useState(false)
 
   React.useEffect(() => {
     setCurrent(colaborador)
     setNotas(colaborador.notas)
+    setNumeroDocumento(colaborador.numeroDocumento)
+    setFechaNacimiento(colaborador.fechaNacimiento)
     setSaved(false)
+    setPadronSaved(false)
     setActionError(null)
   }, [colaborador])
 
@@ -72,6 +80,22 @@ export function ColaboradorDetail({
   const historialMap = new Map(
     current.historial.map((e) => [e.stage, e.timestamp])
   )
+
+  async function handleSavePadron() {
+    setSavingPadron(true)
+    setActionError(null)
+    const result = await guardarPadron(current.id, numeroDocumento, fechaNacimiento)
+    setSavingPadron(false)
+    if (!result.ok) {
+      setActionError(result.error ?? "Error al guardar padrón")
+      return
+    }
+    setPadronSaved(true)
+    if (result.colaborador) {
+      setCurrent(result.colaborador)
+      onUpdated?.(result.colaborador)
+    }
+  }
 
   async function handleSaveNotas() {
     setSaving(true)
@@ -156,6 +180,57 @@ export function ColaboradorDetail({
             />
             <DataRow icon={Phone} label="WhatsApp" value={current.telefono} />
             <DataRow icon={CircleDot} label="Plan" value={current.tipoPlan} />
+          </div>
+        </section>
+
+        <Separator />
+
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Padrón IDV
+            </h3>
+            {!current.padronCompleto && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                Incompleto
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Datos del elegible para contrastar contra el documento en la verificación de identidad.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">DNI</label>
+              <Input
+                value={numeroDocumento}
+                onChange={(e) => {
+                  setNumeroDocumento(e.target.value.replace(/\D/g, "").slice(0, 8))
+                  setPadronSaved(false)
+                }}
+                placeholder="71234567"
+                inputMode="numeric"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Fecha de nacimiento</label>
+              <Input
+                type="date"
+                value={fechaNacimiento}
+                onChange={(e) => {
+                  setFechaNacimiento(e.target.value)
+                  setPadronSaved(false)
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {padronSaved && (
+              <span className="text-xs text-[var(--brand-success)]">Padrón guardado</span>
+            )}
+            <Button size="sm" disabled={savingPadron} onClick={handleSavePadron}>
+              {savingPadron ? "Guardando…" : "Guardar padrón"}
+            </Button>
           </div>
         </section>
 

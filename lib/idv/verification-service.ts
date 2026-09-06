@@ -306,6 +306,7 @@ export class VerificationService {
 
     const inProgress = attempts?.find((a) => a.status === 'in_progress') ?? null
     const successful = attempts?.find((a) => a.status === 'success') ?? null
+    const lastFailed = attempts?.find((a) => a.status === 'failed') ?? null
 
     return {
       currentAttempt: inProgress
@@ -316,6 +317,13 @@ export class VerificationService {
             status: inProgress.status,
             startedAt: inProgress.started_at,
             failureReason: inProgress.failure_reason,
+          }
+        : null,
+      lastFailedAttempt: lastFailed
+        ? {
+            attemptId: lastFailed.id,
+            failureReason: lastFailed.failure_reason,
+            completedAt: lastFailed.completed_at,
           }
         : null,
       attemptsUsed: policy?.verification_attempts_count ?? 0,

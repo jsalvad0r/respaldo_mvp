@@ -1,13 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Camera, Upload, ScanLine, FileText, CheckCircle2, Sun, Eye } from 'lucide-react'
+import { Camera, Upload, ScanLine, FileText, CheckCircle2, Sun, Eye, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { InsuredData } from '@/lib/types'
 
-type CaptureState = 'idle' | 'processing' | 'success' | 'error'
+type CaptureState = 'idle' | 'camera' | 'processing' | 'success' | 'error'
 
 interface StepCapturaDocumentoProps {
   token: string
@@ -22,6 +22,25 @@ const CAPTURE_TIPS = [
   { icon: Eye, text: 'Documento completo y legible' },
 ]
 
+async function captureVideoFrame(video: HTMLVideoElement): Promise<File> {
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth || 1280
+  canvas.height = video.videoHeight || 720
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    return new File([new Blob(['MOCK_DNI:71234567'], { type: 'image/jpeg' })], 'documento.jpg')
+  }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.92)
+  )
+  return new File(
+    [blob ?? new Blob(['MOCK_DNI:71234567'], { type: 'image/jpeg' })],
+    'documento.jpg',
+    { type: 'image/jpeg' }
+  )
+}
+
 export function StepCapturaDocumento({
   token,
   attemptId,
@@ -32,7 +51,63 @@ export function StepCapturaDocumento({
   const [captureState, setCaptureState] = useState<CaptureState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [cameraReady, setCameraReady] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    setCameraReady(false)
+  }
+
+  useEffect(() => {
+    if (captureState !== 'camera') return
+
+    let mounted = true
+    setCameraError(null)
+    setCameraReady(false)
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        })
+        if (!mounted) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play().catch(() => undefined)
+        }
+        setCameraReady(true)
+      } catch {
+        if (!mounted) return
+        setCameraError(
+          'No se pudo acceder a la cámara. Usa "Subir desde galería" o revisa los permisos del navegador.'
+        )
+      }
+    }
+
+    startCamera()
+
+    return () => {
+      mounted = false
+      stopCamera()
+    }
+  }, [captureState])
 
   async function processCapture(file?: File) {
     setCaptureState('processing')
@@ -85,13 +160,27 @@ export function StepCapturaDocumento({
     }
   }
 
-  function handleFileSelected(file: File) {
-    processCapture(file)
-  }
-
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) handleFileSelected(file)
+    if (file) processCapture(file)
+    e.target.value = ''
+  }
+
+  function handleOpenCamera() {
+    setErrorMessage(null)
+    setCaptureState('camera')
+  }
+
+  function handleCloseCamera() {
+    stopCamera()
+    setCaptureState('idle')
+  }
+
+  async function handleTakePhoto() {
+    if (!videoRef.current || !cameraReady) return
+    const file = await captureVideoFrame(videoRef.current)
+    stopCamera()
+    await processCapture(file)
   }
 
   function handleSimulate() {
@@ -102,6 +191,7 @@ export function StepCapturaDocumento({
     setCaptureState('idle')
     setErrorMessage(null)
     setPreviewUrl(null)
+    setCameraError(null)
   }
 
   return (
@@ -119,6 +209,7 @@ export function StepCapturaDocumento({
         className={cn(
           'border-2 border-dashed transition-colors duration-300 overflow-hidden',
           captureState === 'idle' && 'border-border',
+          captureState === 'camera' && 'border-accent',
           captureState === 'processing' && 'border-accent',
           captureState === 'success' && 'border-[var(--brand-success)]',
           captureState === 'error' && 'border-destructive'
@@ -134,6 +225,60 @@ export function StepCapturaDocumento({
               <div className="text-center">
                 <p className="text-foreground font-semibold text-sm">Posiciona tu DNI aquí</p>
                 <p className="text-muted-foreground text-xs mt-1">Frente del documento, sin recortes</p>
+              </div>
+            </div>
+          )}
+
+          {captureState === 'camera' && (
+            <div className="relative bg-black overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full aspect-[4/3] object-cover"
+              />
+
+              {!cameraReady && !cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                  <ScanLine className="size-10 text-muted-foreground animate-pulse" />
+                </div>
+              )}
+
+              {cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted p-6 text-center">
+                  <p className="text-sm text-muted-foreground">{cameraError}</p>
+                </div>
+              )}
+
+              {cameraReady && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
+                  <div className="w-full max-w-[300px] aspect-[1.6/1] rounded-lg border-2 border-white/80 shadow-lg" />
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCloseCamera}
+                className="absolute top-3 right-3 size-9 rounded-full bg-black/50 text-white flex items-center justify-center"
+                aria-label="Cerrar cámara"
+              >
+                <X className="size-5" />
+              </button>
+
+              <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                <p className="text-white text-xs text-center mb-3">
+                  Encuadra el frente de tu DNI dentro del rectángulo
+                </p>
+                <Button
+                  size="lg"
+                  disabled={!cameraReady}
+                  className="w-full rounded-xl h-12 font-semibold bg-accent hover:bg-accent/90 text-accent-foreground"
+                  onClick={() => void handleTakePhoto()}
+                >
+                  <Camera className="size-5" data-icon="inline-start" />
+                  Capturar documento
+                </Button>
               </div>
             </div>
           )}
@@ -196,15 +341,14 @@ export function StepCapturaDocumento({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="sr-only"
             onChange={handleFileInputChange}
-            aria-label="Capturar documento con cámara"
+            aria-label="Subir imagen del documento"
           />
           <Button
             size="lg"
             className="w-full rounded-xl h-14 text-base font-semibold bg-primary hover:bg-primary/90"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleOpenCamera}
           >
             <Camera className="size-5" data-icon="inline-start" />
             Tomar foto
@@ -213,13 +357,7 @@ export function StepCapturaDocumento({
             variant="outline"
             size="lg"
             className="w-full rounded-xl h-12 text-sm font-medium"
-            onClick={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.removeAttribute('capture')
-                fileInputRef.current.click()
-                setTimeout(() => fileInputRef.current?.setAttribute('capture', 'environment'), 1000)
-              }
-            }}
+            onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="size-4" data-icon="inline-start" />
             Subir desde galería

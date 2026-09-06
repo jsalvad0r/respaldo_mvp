@@ -12,7 +12,7 @@ export async function POST(
   try {
     const { token } = await params
 
-    if (!checkRateLimit(`idv-start:${token}`)) {
+    if (!checkRateLimit(`idv-start:${token}`, 30, 60_000)) {
       return NextResponse.json(
         { error: 'RATE_LIMITED', message: 'Demasiadas solicitudes' },
         { status: 429 }

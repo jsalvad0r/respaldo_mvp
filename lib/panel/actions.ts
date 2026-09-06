@@ -20,6 +20,8 @@ export interface CrearColaboradorInput {
   tipoPlan: string
   montoCobertura: number
   fechaAlta?: string
+  numeroDocumento: string
+  fechaNacimiento: string
 }
 
 export interface CrearColaboradorResult extends ActionResult {
@@ -74,6 +76,19 @@ export async function crearColaborador(
     return { ok: false, error: 'El monto de cobertura debe ser mayor a 0' }
   }
 
+  const numeroDocumento = input.numeroDocumento?.trim()
+  const fechaNacimiento = input.fechaNacimiento?.trim()
+
+  if (!numeroDocumento) {
+    return { ok: false, error: 'El número de documento es requerido' }
+  }
+  if (!/^\d{8}$/.test(numeroDocumento)) {
+    return { ok: false, error: 'El DNI debe tener 8 dígitos' }
+  }
+  if (!fechaNacimiento) {
+    return { ok: false, error: 'La fecha de nacimiento es requerida' }
+  }
+
   const companyId = await findOrCreateCompany(empresa)
   if (!companyId) {
     return { ok: false, error: 'No se pudo registrar la empresa' }
@@ -92,6 +107,8 @@ export async function crearColaborador(
       token,
       company_id: companyId,
       colaborador_nombre: nombre,
+      colaborador_documento: numeroDocumento,
+      colaborador_fecha_nacimiento: fechaNacimiento,
       monto_cobertura: input.montoCobertura,
       poliza_numero: polizaNumero,
       tipo_plan: input.tipoPlan,
@@ -150,6 +167,42 @@ export async function marcarRespondio(id: string): Promise<ActionResult> {
 
   if (error) {
     return { ok: false, error: 'No se pudo marcar como respondió' }
+  }
+
+  revalidatePanel()
+  const colaborador = await getColaborador(id)
+  return { ok: true, colaborador: colaborador ?? undefined }
+}
+
+export async function guardarPadron(
+  id: string,
+  numeroDocumento: string,
+  fechaNacimiento: string
+): Promise<ActionResult> {
+  const documento = numeroDocumento.trim()
+  const nacimiento = fechaNacimiento.trim()
+
+  if (!documento) {
+    return { ok: false, error: 'El número de documento es requerido' }
+  }
+  if (!/^\d{8}$/.test(documento)) {
+    return { ok: false, error: 'El DNI debe tener 8 dígitos' }
+  }
+  if (!nacimiento) {
+    return { ok: false, error: 'La fecha de nacimiento es requerida' }
+  }
+
+  const supabase = createServerSupabaseClient()
+  const { error } = await supabase
+    .from('employee_policies')
+    .update({
+      colaborador_documento: documento,
+      colaborador_fecha_nacimiento: nacimiento,
+    })
+    .eq('id', id)
+
+  if (error) {
+    return { ok: false, error: 'No se pudo actualizar el padrón del colaborador' }
   }
 
   revalidatePanel()

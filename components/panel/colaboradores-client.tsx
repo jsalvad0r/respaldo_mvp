@@ -72,6 +72,8 @@ export function ColaboradoresClient({
     nombre: "",
     empresa: "",
     email: "",
+    numeroDocumento: "",
+    fechaNacimiento: "",
     tipoPlan: PLAN_OPTIONS[1].nombre,
     montoCobertura: PLAN_OPTIONS[1].monto,
     fechaAlta: new Date().toISOString().slice(0, 10),
@@ -97,6 +99,8 @@ export function ColaboradoresClient({
       nombre: "",
       empresa: "",
       email: "",
+      numeroDocumento: "",
+      fechaNacimiento: "",
       tipoPlan: PLAN_OPTIONS[1].nombre,
       montoCobertura: PLAN_OPTIONS[1].monto,
       fechaAlta: new Date().toISOString().slice(0, 10),
@@ -128,6 +132,8 @@ export function ColaboradoresClient({
       nombre: form.nombre,
       empresa: form.empresa,
       email: form.email,
+      numeroDocumento: form.numeroDocumento,
+      fechaNacimiento: form.fechaNacimiento,
       tipoPlan: form.tipoPlan,
       montoCobertura: form.montoCobertura,
       fechaAlta: form.fechaAlta,
@@ -146,6 +152,8 @@ export function ColaboradoresClient({
       nombre: "",
       empresa: "",
       email: "",
+      numeroDocumento: "",
+      fechaNacimiento: "",
       tipoPlan: PLAN_OPTIONS[1].nombre,
       montoCobertura: PLAN_OPTIONS[1].monto,
       fechaAlta: new Date().toISOString().slice(0, 10),
@@ -379,6 +387,39 @@ export function ColaboradoresClient({
               <p className="text-xs text-muted-foreground">
                 Le mandamos el link de activación a este correo automáticamente.
               </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">DNI (8 dígitos)</label>
+              <Input
+                required
+                inputMode="numeric"
+                pattern="\d{8}"
+                maxLength={8}
+                value={form.numeroDocumento}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    numeroDocumento: e.target.value.replace(/\D/g, "").slice(0, 8),
+                  }))
+                }
+                placeholder="71234567"
+              />
+              <p className="text-xs text-muted-foreground">
+                Debe coincidir con el documento que presentará en la verificación.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Fecha de nacimiento</label>
+              <Input
+                type="date"
+                required
+                value={form.fechaNacimiento}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, fechaNacimiento: e.target.value }))
+                }
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">

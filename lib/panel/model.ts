@@ -84,6 +84,9 @@ export interface Colaborador {
   telefono: string
   email: string
   notas: string
+  numeroDocumento: string
+  fechaNacimiento: string
+  padronCompleto: boolean
   historial: FunnelEvent[]
   enviadoAt: string | null
   activatedAt: string | null

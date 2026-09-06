@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 
 import { errorResponse } from '@/lib/activacion/errors'
 import { getClientMeta, requireActivePolicy } from '@/lib/activacion/policy'
-import { checkRateLimit } from '@/lib/activacion/rate-limit'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 interface ConsentBody {
@@ -16,13 +15,6 @@ export async function POST(
 ) {
   try {
     const { token } = await params
-
-    if (!checkRateLimit(`consent:${token}`)) {
-      return NextResponse.json(
-        { error: 'RATE_LIMITED', message: 'Demasiadas solicitudes' },
-        { status: 429 }
-      )
-    }
 
     const policy = await requireActivePolicy(token)
     const body = (await request.json()) as ConsentBody
@@ -42,16 +34,60 @@ export async function POST(
 
     const { data: existing } = await supabase
       .from('consents')
-      .select('id, granted')
+      .select('id, granted, created_at')
       .eq('employee_policy_id', policy.id)
       .eq('consent_type', body.consentType)
       .maybeSingle()
 
     if (existing) {
-      return NextResponse.json(
-        { error: 'CONSENT_EXISTS', message: 'El consentimiento ya fue registrado' },
-        { status: 409 }
-      )
+      // Idempotente: si el consentimiento ya existe con el mismo valor, permitir continuar.
+      if (existing.granted === body.granted) {
+        return NextResponse.json({
+          consentId: existing.id,
+          consentType: body.consentType,
+          granted: existing.granted,
+          timestamp: existing.created_at,
+          alreadyRegistered: true,
+        })
+      }
+
+      // Re-consentimiento: antes rechazó, ahora acepta.
+      if (!existing.granted && body.granted) {
+        const { data: updated, error: updateError } = await supabase
+          .from('consents')
+          .update({
+            granted: true,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+          })
+          .eq('id', existing.id)
+          .select('id, consent_type, granted, created_at')
+          .single()
+
+        if (updateError || !updated) {
+          return NextResponse.json(
+            { error: 'INTERNAL_ERROR', message: 'No se pudo actualizar el consentimiento' },
+            { status: 500 }
+          )
+        }
+
+        return NextResponse.json({
+          consentId: updated.id,
+          consentType: updated.consent_type,
+          granted: updated.granted,
+          timestamp: updated.created_at,
+          updated: true,
+        })
+      }
+
+      // Ya otorgó consentimiento; no permitir revocarlo en el flujo digital.
+      return NextResponse.json({
+        consentId: existing.id,
+        consentType: body.consentType,
+        granted: existing.granted,
+        timestamp: existing.created_at,
+        alreadyRegistered: true,
+      })
     }
 
     const { data: consent, error } = await supabase
