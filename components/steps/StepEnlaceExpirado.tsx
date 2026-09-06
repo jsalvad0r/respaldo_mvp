@@ -7,22 +7,37 @@ import { RespaldoWordmark } from '@/components/brand/logo'
 import { Clock, Mail, Phone, CheckCircle2 } from 'lucide-react'
 
 interface StepEnlaceExpiradoProps {
+  token: string
   empresaNombre?: string
-  onRequestResend?: (contact: string) => void
 }
 
 export function StepEnlaceExpirado({
+  token,
   empresaNombre = 'tu empresa',
-  onRequestResend,
 }: StepEnlaceExpiradoProps) {
   const [contact, setContact] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!contact.trim()) return
-    onRequestResend?.(contact.trim())
-    setSubmitted(true)
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/activacion/${token}/resend`, { method: 'POST' })
+      const body = await res.json()
+      if (!res.ok) {
+        throw new Error(body.message ?? 'No se pudo solicitar el reenvío')
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al solicitar reenvío')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -74,11 +89,13 @@ export function StepEnlaceExpirado({
           <Button
             type="submit"
             size="lg"
+            disabled={loading}
             className="w-full rounded-xl h-12 font-semibold bg-accent hover:bg-accent/90 text-accent-foreground"
           >
             <Mail className="size-4" data-icon="inline-start" />
-            Solicitar nuevo enlace
+            {loading ? 'Enviando...' : 'Solicitar nuevo enlace'}
           </Button>
+          {error && <p className="text-destructive text-xs text-center">{error}</p>}
         </form>
       )}
 

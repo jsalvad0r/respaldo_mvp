@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Camera, Upload, ScanLine, FileText, CheckCircle2, Sun, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { InsuredData } from '@/lib/types'
 
 type CaptureState = 'idle' | 'processing' | 'success' | 'error'
 
 interface StepCapturaDocumentoProps {
-  onNext: () => void
+  token: string
+  attemptId: string
+  onNext: (file: File, insuredData: InsuredData) => void
+  onFailure?: (error: string, attemptsRemaining?: number) => void
   onError?: (message: string) => void
 }
 
@@ -18,7 +22,13 @@ const CAPTURE_TIPS = [
   { icon: Eye, text: 'Documento completo y legible' },
 ]
 
-export function StepCapturaDocumento({ onNext, onError }: StepCapturaDocumentoProps) {
+export function StepCapturaDocumento({
+  token,
+  attemptId,
+  onNext,
+  onFailure,
+  onError,
+}: StepCapturaDocumentoProps) {
   const [captureState, setCaptureState] = useState<CaptureState>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -32,11 +42,47 @@ export function StepCapturaDocumento({ onNext, onError }: StepCapturaDocumentoPr
       setPreviewUrl(URL.createObjectURL(file))
     }
 
-    // Prototipo: simula extracción OCR del DNI
-    await new Promise((resolve) => setTimeout(resolve, 1800))
+    try {
+      const formData = new FormData()
+      if (file) {
+        formData.append('file', file)
+      } else {
+        const demoBlob = new Blob(['MOCK_DNI:71234567'], { type: 'image/jpeg' })
+        formData.append('file', demoBlob, 'demo-dni.jpg')
+      }
+      formData.append('attemptId', attemptId)
 
-    setCaptureState('success')
-    setTimeout(() => onNext(), 800)
+      const res = await fetch(`/api/activacion/${token}/idv/document`, {
+        method: 'POST',
+        body: formData,
+      })
+      const body = await res.json()
+
+      if (!res.ok) {
+        if (body.error === 'data_mismatch') {
+          onFailure?.(body.error, body.attemptsRemaining)
+          return
+        }
+
+        const msg =
+          body.message ??
+          'No se pudo leer el documento. Intenta con mejor iluminación.'
+        setCaptureState('error')
+        setErrorMessage(msg)
+        onError?.(msg)
+        return
+      }
+
+      setCaptureState('success')
+      const capturedFile =
+        file ?? new File([new Blob(['MOCK_DNI:71234567'], { type: 'image/jpeg' })], 'demo-dni.jpg')
+      setTimeout(() => onNext(capturedFile, body.extractedData), 800)
+    } catch {
+      const msg = 'Error de conexión. Intenta de nuevo.'
+      setCaptureState('error')
+      setErrorMessage(msg)
+      onError?.(msg)
+    }
   }
 
   function handleFileSelected(file: File) {
@@ -56,13 +102,6 @@ export function StepCapturaDocumento({ onNext, onError }: StepCapturaDocumentoPr
     setCaptureState('idle')
     setErrorMessage(null)
     setPreviewUrl(null)
-  }
-
-  function handleSimulateError() {
-    setCaptureState('error')
-    const msg = 'No se pudo leer el documento. Intenta con mejor iluminación.'
-    setErrorMessage(msg)
-    onError?.(msg)
   }
 
   return (
@@ -88,7 +127,6 @@ export function StepCapturaDocumento({ onNext, onError }: StepCapturaDocumentoPr
         <CardContent className="p-0">
           {captureState === 'idle' && (
             <div className="relative flex flex-col items-center justify-center gap-4 py-10 px-6">
-              {/* Document frame guide */}
               <div className="relative w-full max-w-[280px] aspect-[1.6/1] rounded-xl border-2 border-dashed border-accent/40 bg-muted/30 flex items-center justify-center">
                 <div className="absolute inset-3 rounded-lg border border-accent/20" />
                 <FileText className="size-10 text-muted-foreground/60" strokeWidth={1.5} />
@@ -193,24 +231,14 @@ export function StepCapturaDocumento({ onNext, onError }: StepCapturaDocumentoPr
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 text-muted-foreground text-xs h-8"
-              onClick={handleSimulate}
-            >
-              Simular captura exitosa
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 text-muted-foreground text-xs h-8"
-              onClick={handleSimulateError}
-            >
-              Simular error
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground text-xs h-8"
+            onClick={handleSimulate}
+          >
+            Simular captura exitosa
+          </Button>
         </div>
       )}
 

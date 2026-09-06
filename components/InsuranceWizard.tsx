@@ -15,7 +15,6 @@ import { StepExito } from '@/components/steps/StepExito'
 import {
   INITIAL_STATE,
   getProgressStep,
-  MOCK_OCR_DATA,
   MAX_VERIFICATION_ATTEMPTS,
   type WizardState,
   type InsuredData,
@@ -39,6 +38,22 @@ interface ActivationResult {
 
 type WizardView = 'wizard' | 'failed' | 'blocked'
 
+async function postConsent(
+  token: string,
+  consentType: 'biometric_data_processing' | 'policy_activation',
+  granted: boolean
+) {
+  const res = await fetch(`/api/activacion/${token}/consent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ consentType, granted }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message ?? 'No se pudo registrar el consentimiento')
+  }
+}
+
 export function InsuranceWizard({
   token,
   colaboradorNombre,
@@ -51,6 +66,10 @@ export function InsuranceWizard({
   const [activation, setActivation] = useState<ActivationResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [consentError, setConsentError] = useState<string | null>(null)
+  const [attemptId, setAttemptId] = useState<string | null>(null)
+  const [documentFile, setDocumentFile] = useState<File | null>(null)
+  const [facialFile, setFacialFile] = useState<File | null>(null)
   const [simulateVerificationFailure, setSimulateVerificationFailure] = useState(false)
 
   const progressStep = getProgressStep(state.step)
@@ -66,39 +85,94 @@ export function InsuranceWizard({
     goToStep(2)
   }
 
-  function handleBiometricConsentAccept() {
-    setState((prev) => ({
-      ...prev,
-      idv: {
-        ...prev.idv,
-        biometricConsentGiven: true,
-        biometricConsentTimestamp: new Date().toISOString(),
-        verificationStatus: 'in_progress',
-      },
-    }))
-    goToStep(3)
+  async function handleBiometricConsentAccept() {
+    setConsentError(null)
+    try {
+      await postConsent(token, 'biometric_data_processing', true)
+
+      const startRes = await fetch(`/api/activacion/${token}/idv/start`, {
+        method: 'POST',
+      })
+      const startBody = await startRes.json()
+      if (!startRes.ok) {
+        throw new Error(startBody.message ?? 'No se pudo iniciar la verificación')
+      }
+
+      setAttemptId(startBody.attemptId)
+      setState((prev) => ({
+        ...prev,
+        idv: {
+          ...prev.idv,
+          biometricConsentGiven: true,
+          biometricConsentTimestamp: new Date().toISOString(),
+          verificationStatus: 'in_progress',
+        },
+      }))
+      goToStep(3)
+    } catch (err) {
+      setConsentError(err instanceof Error ? err.message : 'Error al registrar consentimiento')
+    }
   }
 
-  function handleBiometricConsentReject() {
-    setState((prev) => ({
-      ...prev,
-      idv: {
-        ...prev.idv,
-        biometricConsentGiven: false,
-        biometricConsentTimestamp: new Date().toISOString(),
-      },
-    }))
+  async function handleBiometricConsentReject() {
+    setConsentError(null)
+    try {
+      await postConsent(token, 'biometric_data_processing', false)
+      setState((prev) => ({
+        ...prev,
+        idv: {
+          ...prev.idv,
+          biometricConsentGiven: false,
+          biometricConsentTimestamp: new Date().toISOString(),
+        },
+      }))
+    } catch (err) {
+      setConsentError(err instanceof Error ? err.message : 'Error al registrar consentimiento')
+    }
   }
 
-  function handleDocumentCaptured() {
+  function handleDocumentCaptured(file: File, insuredData: InsuredData) {
+    setDocumentFile(file)
     setState((prev) => ({
       ...prev,
+      insuredData,
       idv: { ...prev.idv, documentImageCaptured: true },
     }))
     goToStep(4)
   }
 
-  function handleFacialCaptured() {
+  function handleDocumentFailure(error: string, attemptsRemaining?: number) {
+    const failureReason: VerificationFailureReason =
+      error === 'data_mismatch' ? 'data_mismatch' : 'document_unreadable'
+
+    setState((prev) => {
+      const attemptsUsed =
+        attemptsRemaining !== undefined
+          ? MAX_VERIFICATION_ATTEMPTS - attemptsRemaining
+          : prev.idv.attemptsUsed + 1
+      const blocked = attemptsRemaining === 0
+
+      if (blocked) setView('blocked')
+      else if (error === 'data_mismatch') setView('failed')
+
+      return {
+        ...prev,
+        idv: {
+          ...prev.idv,
+          attemptsUsed,
+          verificationStatus: blocked ? 'blocked' : 'failed',
+          lastFailureReason: failureReason,
+        },
+      }
+    })
+
+    if (attemptsRemaining !== 0 && error === 'data_mismatch') {
+      setAttemptId(null)
+    }
+  }
+
+  function handleFacialCaptured(file: File) {
+    setFacialFile(file)
     setState((prev) => ({
       ...prev,
       idv: { ...prev.idv, facialImageCaptured: true },
@@ -106,11 +180,14 @@ export function InsuranceWizard({
     goToStep(5)
   }
 
-  function handleVerificationComplete(success: boolean) {
-    if (success) {
+  async function handleVerificationComplete(
+    success: boolean,
+    verifiedData?: InsuredData
+  ) {
+    if (success && verifiedData) {
       setState((prev) => ({
         ...prev,
-        insuredData: MOCK_OCR_DATA,
+        insuredData: verifiedData,
         idv: {
           ...prev.idv,
           verificationStatus: 'verified',
@@ -126,70 +203,104 @@ export function InsuranceWizard({
     }
 
     const failureReason: VerificationFailureReason = 'face_mismatch'
-    setState((prev) => {
-      const attemptsUsed = prev.idv.attemptsUsed + 1
-      const blocked = attemptsUsed >= MAX_VERIFICATION_ATTEMPTS
-      setView(blocked ? 'blocked' : 'failed')
-      return {
+
+    try {
+      const statusRes = await fetch(`/api/activacion/${token}/idv/status`)
+      const statusBody = await statusRes.json()
+
+      setState((prev) => {
+        const attemptsUsed = statusBody.attemptsUsed ?? prev.idv.attemptsUsed + 1
+        const blocked = statusBody.isBlocked || attemptsUsed >= MAX_VERIFICATION_ATTEMPTS
+        setView(blocked ? 'blocked' : 'failed')
+        return {
+          ...prev,
+          idv: {
+            ...prev.idv,
+            attemptsUsed,
+            maxAttempts: statusBody.maxAttempts ?? MAX_VERIFICATION_ATTEMPTS,
+            verificationStatus: blocked ? 'blocked' : 'failed',
+            lastFailureReason: failureReason,
+            lastAttempt: {
+              timestamp: new Date().toISOString(),
+              stage: 'comparison',
+              result: 'failed',
+              failureReason,
+            },
+          },
+        }
+      })
+      setAttemptId(null)
+    } catch {
+      setView('failed')
+    }
+  }
+
+  async function handleVerificationRetry() {
+    try {
+      const startRes = await fetch(`/api/activacion/${token}/idv/start`, { method: 'POST' })
+      const startBody = await startRes.json()
+      if (!startRes.ok) {
+        if (startRes.status === 423) {
+          setView('blocked')
+          return
+        }
+        throw new Error(startBody.message ?? 'No se pudo reiniciar la verificación')
+      }
+
+      setAttemptId(startBody.attemptId)
+      setDocumentFile(null)
+      setFacialFile(null)
+      setState((prev) => ({
         ...prev,
         idv: {
           ...prev.idv,
-          attemptsUsed,
-          verificationStatus: blocked ? 'blocked' : 'failed',
-          lastFailureReason: failureReason,
-          lastAttempt: {
-            timestamp: new Date().toISOString(),
-            stage: 'comparison',
-            result: 'failed',
-            failureReason,
-          },
+          documentImageCaptured: false,
+          facialImageCaptured: false,
+          verificationStatus: 'in_progress',
         },
-      }
-    })
+      }))
+      setView('wizard')
+      goToStep(3)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'No se pudo reiniciar la verificación')
+    }
   }
 
-  function handleVerificationRetry() {
-    setState((prev) => ({
-      ...prev,
-      idv: {
-        ...prev.idv,
-        documentImageCaptured: false,
-        facialImageCaptured: false,
-        verificationStatus: 'in_progress',
-      },
-    }))
-    setView('wizard')
-    goToStep(3)
+  async function handlePolicyConsentNext() {
+    setConsentError(null)
+    try {
+      await postConsent(token, 'policy_activation', true)
+      setState((prev) => ({
+        ...prev,
+        policyConsentGiven: true,
+        policyConsentTimestamp: new Date().toISOString(),
+      }))
+      goToStep(7)
+    } catch (err) {
+      setConsentError(err instanceof Error ? err.message : 'Error al registrar consentimiento')
+    }
   }
 
-  function handlePolicyConsentNext() {
-    setState((prev) => ({
-      ...prev,
-      policyConsentGiven: true,
-      policyConsentTimestamp: new Date().toISOString(),
-    }))
-    goToStep(7)
-  }
-
-  async function handleDatosNext(insuredData: InsuredData, beneficiaries: Beneficiary[]) {
+  async function handleDatosNext(_insuredData: InsuredData, beneficiaries: Beneficiary[]) {
     setSubmitting(true)
     setSubmitError(null)
     try {
       const res = await fetch(`/api/activacion/${token}/activar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          insuredData,
-          beneficiaries,
-          documentImagePath: state.documentImagePath,
-        }),
+        body: JSON.stringify({ beneficiaries }),
       })
       const body = await res.json()
       if (!res.ok) {
-        throw new Error(body.error ?? 'No se pudo activar tu seguro')
+        throw new Error(body.message ?? body.error ?? 'No se pudo activar tu seguro')
       }
       setActivation(body as ActivationResult)
-      setState((prev) => ({ ...prev, insuredData, beneficiaries, step: 8 }))
+      setState((prev) => ({
+        ...prev,
+        insuredData: body.insuredData ?? prev.insuredData,
+        beneficiaries,
+        step: 8,
+      }))
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Error inesperado, intenta de nuevo')
@@ -243,14 +354,24 @@ export function InsuranceWizard({
         )}
 
         {state.step === 2 && (
-          <StepConsentimientoBiometrico
-            onAccept={handleBiometricConsentAccept}
-            onReject={handleBiometricConsentReject}
-          />
+          <>
+            <StepConsentimientoBiometrico
+              onAccept={handleBiometricConsentAccept}
+              onReject={handleBiometricConsentReject}
+            />
+            {consentError && (
+              <p className="px-5 pb-4 text-center text-sm text-destructive">{consentError}</p>
+            )}
+          </>
         )}
 
-        {state.step === 3 && (
-          <StepCapturaDocumento onNext={handleDocumentCaptured} />
+        {state.step === 3 && attemptId && (
+          <StepCapturaDocumento
+            token={token}
+            attemptId={attemptId}
+            onNext={handleDocumentCaptured}
+            onFailure={handleDocumentFailure}
+          />
         )}
 
         {state.step === 4 && (
@@ -270,19 +391,28 @@ export function InsuranceWizard({
           </>
         )}
 
-        {state.step === 5 && (
+        {state.step === 5 && attemptId && documentFile && facialFile && (
           <StepVerificando
+            token={token}
+            attemptId={attemptId}
+            documentFile={documentFile}
+            facialFile={facialFile}
             onComplete={handleVerificationComplete}
             simulateFailure={simulateVerificationFailure}
           />
         )}
 
         {state.step === 6 && (
-          <StepConsentimientoPoliza
-            empresaNombre={empresaNombre}
-            montoCobertura={montoCobertura}
-            onNext={handlePolicyConsentNext}
-          />
+          <>
+            <StepConsentimientoPoliza
+              empresaNombre={empresaNombre}
+              montoCobertura={montoCobertura}
+              onNext={handlePolicyConsentNext}
+            />
+            {consentError && (
+              <p className="px-5 pb-4 text-center text-sm text-destructive">{consentError}</p>
+            )}
+          </>
         )}
 
         {state.step === 7 && (

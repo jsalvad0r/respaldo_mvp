@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 type FacialState = 'positioning' | 'ready' | 'capturing' | 'success' | 'error'
 
 interface StepCapturaFacialProps {
-  onNext: () => void
+  onNext: (file: File) => void
 }
 
 const STATE_MESSAGES: Record<FacialState, string> = {
@@ -18,6 +18,21 @@ const STATE_MESSAGES: Record<FacialState, string> = {
   capturing: 'Mantente quieto...',
   success: 'Selfie capturada',
   error: 'No se pudo capturar tu rostro',
+}
+
+async function captureVideoFrame(video: HTMLVideoElement): Promise<File> {
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth || 640
+  canvas.height = video.videoHeight || 480
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    return new File([new Blob(['MOCK_FACE'], { type: 'image/jpeg' })], 'selfie.jpg')
+  }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.92)
+  )
+  return new File([blob ?? new Blob(['MOCK_FACE'], { type: 'image/jpeg' })], 'selfie.jpg')
 }
 
 export function StepCapturaFacial({ onNext }: StepCapturaFacialProps) {
@@ -58,20 +73,25 @@ export function StepCapturaFacial({ onNext }: StepCapturaFacialProps) {
     }
   }, [])
 
-  async function handleCapture() {
-    setFacialState('capturing')
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+  async function finishCapture(file: File) {
     setFacialState('success')
     streamRef.current?.getTracks().forEach((t) => t.stop())
-    setTimeout(() => onNext(), 800)
+    setTimeout(() => onNext(file), 800)
   }
 
-  async function handleSimulate() {
+  async function handleCapture() {
     setFacialState('capturing')
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setFacialState('success')
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-    setTimeout(() => onNext(), 800)
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+
+    if (videoRef.current && videoRef.current.videoWidth > 0) {
+      const file = await captureVideoFrame(videoRef.current)
+      await finishCapture(file)
+      return
+    }
+
+    await finishCapture(
+      new File([new Blob(['MOCK_FACE'], { type: 'image/jpeg' })], 'selfie-demo.jpg')
+    )
   }
 
   const ovalColor =
@@ -110,13 +130,12 @@ export function StepCapturaFacial({ onNext }: StepCapturaFacialProps) {
               )}
             />
 
-            {!streamRef.current && facialState !== 'success' && (
+            {facialState !== 'success' && !streamRef.current && (
               <div className="absolute inset-0 flex items-center justify-center bg-muted">
                 <ScanFace className="size-16 text-muted-foreground/40" strokeWidth={1} />
               </div>
             )}
 
-            {/* Oval guide overlay */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
               viewBox="0 0 300 400"
@@ -177,7 +196,7 @@ export function StepCapturaFacial({ onNext }: StepCapturaFacialProps) {
             variant="ghost"
             size="sm"
             className="w-full text-muted-foreground text-xs h-8"
-            onClick={handleSimulate}
+            onClick={handleCapture}
           >
             Simular captura (modo demo)
           </Button>

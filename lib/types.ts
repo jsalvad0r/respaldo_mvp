@@ -114,7 +114,7 @@ export interface ActivacionLinkData {
 // Mock OCR result after "scanning" document
 export const MOCK_OCR_DATA: InsuredData = {
   nombreCompleto: 'Camila Rosas Morales',
-  numeroDocumento: 'ROMC9504128F2',
+  numeroDocumento: '71234567',
   fechaNacimiento: '1995-04-12',
 }
 

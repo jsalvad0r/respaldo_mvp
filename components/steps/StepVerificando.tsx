@@ -5,8 +5,15 @@ import { RespaldoWordmark } from '@/components/brand/logo'
 import { ShieldCheck } from 'lucide-react'
 
 interface StepVerificandoProps {
-  onComplete: (success: boolean) => void
-  /** Prototipo: forzar resultado de verificación */
+  token: string
+  attemptId: string
+  documentFile: File
+  facialFile: File
+  onComplete: (success: boolean, verifiedData?: {
+    nombreCompleto: string
+    numeroDocumento: string
+    fechaNacimiento: string
+  }) => void
   simulateFailure?: boolean
 }
 
@@ -17,7 +24,14 @@ const SUBMESSAGES = [
   'Casi listo...',
 ]
 
-export function StepVerificando({ onComplete, simulateFailure = false }: StepVerificandoProps) {
+export function StepVerificando({
+  token,
+  attemptId,
+  documentFile,
+  facialFile,
+  onComplete,
+  simulateFailure = false,
+}: StepVerificandoProps) {
   const [messageIndex, setMessageIndex] = useState(0)
   const [progress, setProgress] = useState(0)
 
@@ -30,17 +44,43 @@ export function StepVerificando({ onComplete, simulateFailure = false }: StepVer
       setProgress((p) => Math.min(p + 4, 95))
     }, 200)
 
-    const completeTimeout = setTimeout(() => {
-      setProgress(100)
-      setTimeout(() => onComplete(!simulateFailure), 400)
-    }, 4000)
+    async function verify() {
+      const formData = new FormData()
+      formData.append('file', facialFile)
+      formData.append('documentFile', documentFile)
+      formData.append('attemptId', attemptId)
+      if (simulateFailure) {
+        formData.append('simulateFailure', 'true')
+      }
+
+      try {
+        const res = await fetch(`/api/activacion/${token}/idv/facial`, {
+          method: 'POST',
+          body: formData,
+        })
+        const body = await res.json()
+        setProgress(100)
+
+        setTimeout(() => {
+          if (res.ok && body.verificationResult === 'success') {
+            onComplete(true, body.verifiedData)
+          } else {
+            onComplete(false)
+          }
+        }, 400)
+      } catch {
+        setProgress(100)
+        setTimeout(() => onComplete(false), 400)
+      }
+    }
+
+    verify()
 
     return () => {
       clearInterval(messageInterval)
       clearInterval(progressInterval)
-      clearTimeout(completeTimeout)
     }
-  }, [onComplete, simulateFailure])
+  }, [attemptId, documentFile, facialFile, onComplete, simulateFailure, token])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-dvh px-6 py-12 gap-8 text-center bg-background">
